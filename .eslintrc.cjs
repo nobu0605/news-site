@@ -23,7 +23,40 @@ module.exports = {
 
   // Base config
   extends: ["eslint:recommended"],
-
+  plugins: ["import", "unused-imports"],
+  rules: {
+    "import/order": [
+      "error",
+      {
+        groups: [
+          "builtin",
+          "external",
+          "parent",
+          "sibling",
+          "index",
+          "object",
+          "type",
+        ],
+        pathGroups: [
+          {
+            pattern: "{react}",
+            group: "builtin",
+            position: "before",
+          },
+          {
+            pattern: "@src/**",
+            group: "parent",
+            position: "before",
+          },
+        ],
+        pathGroupsExcludedImportTypes: ["builtin"],
+        alphabetize: {
+          order: "asc",
+        },
+      },
+    ],
+    "unused-imports/no-unused-imports": "warn",
+  },
   overrides: [
     // React
     {
@@ -71,6 +104,10 @@ module.exports = {
         "plugin:import/recommended",
         "plugin:import/typescript",
       ],
+      rules: {
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-explicit-any": "warn",
+      },
     },
 
     // Node
