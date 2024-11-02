@@ -1,6 +1,8 @@
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, useRouteError } from "@remix-run/react";
 import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
+import { Layout } from "@/components/common/Layout";
+import { SearchForm } from "@/components/features/SearchForm";
 import {
   Card,
   CardHeader,
@@ -8,6 +10,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+
+type RouteError = {
+  data: string;
+  internal: boolean;
+  status: number;
+  statusText: string;
+};
 
 type NewsData = {
   source: {
@@ -25,8 +34,8 @@ type NewsData = {
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "News site" },
+    { name: "description", content: "News site" },
   ];
 };
 
@@ -35,61 +44,93 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
 
+  if (!searchQuery) {
+    return new Response(null, { status: 200 });
+  }
+
   const response = await fetch(
-    `https://newsapi.org/v2/everything?q=bitcoin&apiKey=${API_KEY}`
+    `https://newsapi.org/v2/everything?q=${searchQuery}&pageSize=15&apiKey=${API_KEY}`
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch news");
+    throw new Response("Error", { status: response.status });
   }
 
   const data = await response.json();
-  return json(data.articles);
+  const articles = data.articles.filter(
+    (article: NewsData) => !article.title.includes("Removed")
+  );
+
+  return json(articles);
 }
 
 export default function Index() {
   const news = useLoaderData<NewsData[]>();
 
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-16">
-        <header className="flex flex-col items-center gap-9">
-          <h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">
-            Welcome to <span className="sr-only">Remix</span>
-          </h1>
-          <div className="h-[144px] w-[434px]">
-            <img
-              src="/logo-light.png"
-              alt="Remix"
-              className="block w-full dark:hidden"
-            />
-            <img
-              src="/logo-dark.png"
-              alt="Remix"
-              className="hidden w-full dark:block"
-            />
-          </div>
-        </header>
-        {news.length > 0 &&
-          news.map((news) => (
-            <Card className="max-w-md max-h-96" key={news.title}>
-              <CardHeader>
-                <CardTitle>{news.title}</CardTitle>
-                <CardDescription>{news.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>{news.content}</p>
-                <img
-                  className="max-w-sm max-h-96"
-                  width={400}
-                  height={400}
-                  src={news.urlToImage}
-                  alt={news.title}
-                />
-              </CardContent>
-            </Card>
-          ))}
+    <Layout>
+      <div className="flex flex-col items-center gap-6">
+        <SearchForm />
+        <div className="flex flex-wrap gap-9 justify-center p-[10px]">
+          {news.length > 0 &&
+            news.map((news) => (
+              <Card className="max-w-[340px] break-all" key={news.title}>
+                <CardHeader>
+                  <CardTitle>{news.title}</CardTitle>
+                  <CardDescription>{news.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                  <p>{news.content}</p>
+                  <img
+                    className="max-w-[250px] max-h-96"
+                    width={400}
+                    height={400}
+                    src={news.urlToImage}
+                    alt={news.title}
+                  />
+                </CardContent>
+              </Card>
+            ))}
+        </div>
       </div>
-    </div>
+    </Layout>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError() as RouteError;
+
+  if (error.status === 400) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center flex-col mt-5">
+          <div className="flex max-w-md gap-3 flex-col">
+            <h1>Bad Request</h1>
+            <p>Oh no! Something went wrong!</p>
+            <p>Please search again</p>
+            <SearchForm />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error.status === 429) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center flex-col mt-5">
+          <div className="flex max-w-md gap-3 flex-col">
+            <h1>Too many Requests!</h1>
+            <p>Please search again later</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <h1>Oh no! Something went wrong!</h1>
+    </Layout>
   );
 }
