@@ -11,15 +11,17 @@ export function Layout({ children }: Props) {
         <Link to={`/`}>
           <h1 className="leading text-2xl font-bold">News site</h1>
         </Link>
-        <div className="flex flex-row gap-3">
-          <p>Top news</p>
-          <Link to={`/?q=Bussiness`}>
+        <div className="flex flex-row gap-10">
+          <Link to={`/top-news`}>
+            <p>US Top News</p>
+          </Link>
+          <Link to={`/news/Bussiness`}>
             <p>Bussiness</p>
           </Link>
-          <Link to={`/?q=Science`}>
+          <Link to={`/news/Science`}>
             <p>Science</p>
           </Link>
-          <Link to={`/?q=Politics`}>
+          <Link to={`/news/Politics`}>
             <p>Politics</p>
           </Link>
         </div>
